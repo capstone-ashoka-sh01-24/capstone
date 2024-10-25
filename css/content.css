@@ -1,0 +1,8 @@
+.hovering {
+  border: 2px solid blue;
+}
+
+.hidden-hover {
+  pointer-events: all;
+  opacity: 0;
+}
