@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "outDir": "build"
+  },
+  "exclude": ["build"]
+}
