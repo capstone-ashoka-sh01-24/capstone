@@ -1,41 +1,35 @@
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.action.setBadgeText({
-    text: "OFF",
-  });
-});
+// Background script - Runs when the browser starts (and the extension is enabled)
+// This is basically a service worker
+//
+// -------------------------------------------------------
 
-// When the user clicks on the extension action
-chrome.action.onClicked.addListener(async (tab) => {
-  // We retrieve the action badge to check if the extension is 'ON' or 'OFF'
-  const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
-  // Next state will always be the opposite
-  const nextState = prevState === "ON" ? "OFF" : "ON";
+let actions = ["toggleAnnotate", "toggleDeannotate", "toggleVisiblity"];
 
-  // Set the action badge to the next state
-  await chrome.action.setBadgeText({
-    tabId: tab.id,
-    text: nextState,
-  });
-
-  if (nextState === "ON") {
-    await chrome.scripting.insertCSS({
-      files: ["css/content.css"],
-      target: { tabId: tab.id },
+const passRequestToContext = async (request) => {
+  try {
+    const [tab] = await chrome.tabs.query({
+      currentWindow: true,
+      active: true,
     });
 
-    await chrome.scripting
-      .executeScript({
-        target: { tabId: tab.id, allFrames: true },
-        files: ["scripts/content.js"],
-      })
-      .then(() => console.log("script injected in all frames"));
-  } else if (nextState === "OFF") {
-    // Remove the CSS file when the user turns the extension off
-    await chrome.scripting.removeCSS({
-      files: ["css/content.css"],
-      target: { tabId: tab.id },
-    });
+    console.log(tab);
 
-    // also remove the eventListeners when this happens
+    if (tab) {
+      chrome.tabs.sendMessage(tab.id, request);
+    } else {
+      throw new Error("Tab not found");
+    }
+  } catch (error) {
+    console.error("Error when messaging context: ", error);
+  }
+};
+
+// Listen to Messages from popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (actions.includes(request.action)) {
+    passRequestToContext(request).then(sendResponse("done."));
+    return true;
+  } else {
+    sendResponse({ status: "invalid action." });
   }
 });

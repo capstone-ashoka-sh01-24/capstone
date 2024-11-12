@@ -1,18 +1,49 @@
-#container-btn {
-  padding: 0.5rem 1rem;
+.container-btn {
+    padding: 0.25rem 0.5rem;
 }
 
-button {
-  color: #f2f2f2;
-  background-color: #0062d9;
-  border-radius: 2.5rem;
-  border: solid 1px #0062d9;
-  font-size: small;
-  padding: 1rem 1.5rem;
-  margin: 1rem;
+@scope (#mod) {
+    button {
+        color: #f2f2f2;
+        background-color: #0062d9;
+        border-radius: 1.5rem;
+        border: solid 1px #0062d9;
+        font-size: small;
+        padding: 1rem 1.5rem;
+        margin: 1rem;
+    }
+
+    button:hover {
+        color: #0062d9;
+        background-color: #f2f2f2;
+    }
+
+    button:disabled {
+        color: lightblue;
+        background-color: grey;
+        border: solid 1px grey;
+    }
 }
 
-button:hover {
-  color: #0062d9;
-  background-color: #f2f2f2;
+@scope (#save) {
+    button {
+        color: #f2f2f2;
+        background-color: #067480;
+        border-radius: 1.5rem;
+        border: solid 1px #007099;
+        font-size: small;
+        padding: 1rem 1.5rem;
+        margin: 1rem;
+    }
+
+    button:hover {
+        color: #067480;
+        background-color: #f2f2f2;
+    }
+
+    button:disabled {
+        color: darkblue;
+        background-color: grey;
+        border: solid 1px grey;
+    }
 }
