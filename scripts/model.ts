@@ -1,11 +1,11 @@
 class PageModification {
-  url: URL;
-  modifications: Modifications[];
+    url: URL;
+    modifications: Modifications[];
 }
 
 class Modifications {
-  element: Node;
-  changes: Hide | Annotation[];
+    element: Node;
+    changes: Hide | Annotation[];
 }
 
 // class Change {
@@ -16,9 +16,16 @@ class Modifications {
 class Hide {}
 
 class Annotation {
-  text: string;
+    text: string;
 }
 
+class FontChange {
+    font: string;
+}
+
+class ContentChange {
+    text: string;
+}
 // TODO
 //
 // Convert to JSON object?

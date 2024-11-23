@@ -15,11 +15,12 @@
     "default_popup": "html/popup.html"
   },
 
-  "permissions": ["scripting", "activeTab", "tabs"],
+  "permissions": ["scripting", "activeTab", "tabs", "storage"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["scripts/content.js"],
+      // "js": ["scripts/model.js", "scripts/content.js"],
+      "js": ["scripts/content_script.js"],
       "css": ["css/content.css"],
       "run_at": "document_start"
     }

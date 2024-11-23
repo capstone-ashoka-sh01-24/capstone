@@ -3,7 +3,14 @@
 //
 // -------------------------------------------------------
 
-let actions = ["toggleAnnotate", "toggleDeannotate", "toggleVisiblity"];
+// TODO refactor out actions in one .js file
+let actions = [
+  "toggleAnnotate",
+  "toggleDeannotate",
+  "toggleVisiblity",
+  "saveModifications",
+  "loadModifications",
+];
 
 const passRequestToContext = async (request) => {
   try {

@@ -19,7 +19,6 @@
     }
 
     button:disabled {
-        color: lightblue;
         background-color: grey;
         border: solid 1px grey;
     }
@@ -42,7 +41,6 @@
     }
 
     button:disabled {
-        color: darkblue;
         background-color: grey;
         border: solid 1px grey;
     }
