@@ -1,4 +1,5 @@
 import { finder } from "@medv/finder";
+import { allowedActions, customCSSClasses } from "./lib.mjs";
 
 /**
  * Represents a hide action.
@@ -76,6 +77,10 @@ export class CompositeModification {
   updateFontChange(fontChange) {}
   updateContentChange(contentChange) {}
 
+  /**
+   * @param {string} prop_name
+   * @returns {({variant: string, data: Object})}
+   */
   stringify_property(prop_name) {
     return {
       variant: prop_name,
@@ -85,7 +90,7 @@ export class CompositeModification {
   }
 
   toJSON() {
-    return CompositeModification.properties.map(
+    return CompositeModification.properties.map((prop_name) =>
       this.stringify_property(prop_name),
     );
   }
@@ -114,9 +119,12 @@ export class NodeModification {
 
   setHidden() {
     this.modifications = new Hidden();
+    // TODO set UI modifications only within data structure and not outside
+    this.node.classList.add("hidden-hover");
   }
 
   setCompositeModification() {
+    this.node.classList.remove("hidden-hover");
     this.modifications = new CompositeModification();
   }
 
@@ -160,21 +168,12 @@ export class NodeModification {
   }
   /* TODO add further modifications as needed */
 }
-
-export const allowedActions = {
-  toggleVisibility: "toggleVisibility",
-  toggleAnnotate: "toggleAnnotate",
-  toggleDeannotate: "toggleDeannotate",
-};
-
-export const customCSSClasses = ["hovering", "hidden-hover"];
-
 /**
  * Represents all modifications to a particular page.
  */
 export class PageModifications {
   /**
-   * @param {URL} url - The URL of the page.
+   * @param {string} url - The URL of the page.
    */
   constructor(url) {
     this.url = url;
@@ -244,5 +243,43 @@ export class PageModifications {
     // In a way that gives the content script
     // an idea of the current state of the modification
     // To simultaneously ensure no invalid actions are ocurring.
+  }
+}
+
+/**
+ *
+ * @param {string} jsonString
+ * @returns {PageModifications | Error}
+ */
+export function loadModifications(jsonString) {
+  try {
+    let obj = JSON.parse(jsonString);
+    const page_mods = new PageModifications(obj.url);
+
+    for (const nodeModObj of obj.nodeModifications) {
+      const node = document.querySelector(nodeModObj.node);
+
+      for (const modObj of nodeModObj.modifications) {
+        let modification = {
+          action: "",
+          data: null,
+        };
+
+        switch (modObj.variant) {
+          case "hidden":
+            modification.action = allowedActions.toggleVisibility;
+            page_mods.setNodeModification(node, modification);
+            break;
+          default:
+            throw new Error("unrecognised modification variant");
+        }
+      }
+    }
+    console.log("Reconstructed PageMod obj: ", page_mods);
+
+    return page_mods;
+  } catch (err) {
+    console.error(err);
+    throw new Error("Malformed JSON Modifications object.");
   }
 }

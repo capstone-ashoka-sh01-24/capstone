@@ -6,6 +6,8 @@
 // ---------------------------------------------------------------------
 
 import * as model from "./model.mjs";
+import { allowedActions } from "./lib.mjs";
+import { generateHash } from "./digest.mjs";
 
 /**
  *
@@ -33,7 +35,7 @@ const getURL = () =>
   window.location.pathname;
 
 // Event Listeners for Setting / Changing Modifications
-const page_modifications = new model.PageModifications(getURL());
+let page_modifications = new model.PageModifications(getURL());
 
 const toggleHoveringStyle = (e) => {
   // debugger;
@@ -44,10 +46,10 @@ const toggleHoveringStyle = (e) => {
 const toggleHidden = (e) => {
   e.preventDefault();
   const node = e.target;
-  node.classList.toggle("hidden-hover");
+  // node.classList.toggle("hidden-hover");
 
   const modification = {
-    action: model.allowedActions.toggleVisibility,
+    action: allowedActions.toggleVisibility,
     data: null,
   };
   console.log("Node:", node);
@@ -153,17 +155,65 @@ const handle_action = (action) => {
 // 3. TODO Load from chrome.storage => JSON => PageModifications
 // This should never be in an invalid state.
 
-const saveModifications = () => {
-  // TODO
-  console.log("Current Modifications State:", page_modifications);
-  console.log(JSON.stringify(page_modifications, null, 2));
-  alert("Trying to save state.");
+const generateModifications = () => {
+  return JSON.stringify(page_modifications, null, 2);
 };
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+const logCurrentModifications = (mods) => {
+  console.log("Current Modifications State:", page_modifications);
+  console.log(mods);
+  alert("Trying to save current modified state.");
+};
+
+/** @param {string} key
+ * @param {string} value */
+const setSavedModifications = async (key, value) => {
+  try {
+    await chrome.storage.local.set({
+      [key]: value,
+    });
+  } catch {
+    alert("Unsuccessful save");
+  }
+  alert("Saved successfully");
+};
+
+/** @param {string} key - hash of the url */
+const getSavedModifications = async (key) => {
+  try {
+    const storedModification = await chrome.storage.local.get([key]);
+    if (storedModification[key]) {
+      alert("Found modification!");
+      return storedModification[key];
+    } else {
+      alert("Modification not found :/");
+    }
+  } catch {
+    alert("Error while retrieving modification from Extension Storage");
+  }
+};
+
+// Figure out how to cache the hash so that
+// const hash = generateHash(page_modifications.url);
+
+const saveModifications = async () => {
+  const hash = await generateHash(page_modifications.url);
+  const mods = generateModifications();
+  logCurrentModifications(mods);
+  await setSavedModifications(hash, mods);
+  console.log("URL Hash:", hash);
+};
+
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   console.log(request.action);
   if (request.action == "saveModifications") {
-    saveModifications();
+    await saveModifications();
+  } else if (request.action == "loadModifications") {
+    const hash = await generateHash(page_modifications.url);
+    const mods = await getSavedModifications(hash);
+    console.log("Retrieved Mods:", mods);
+    page_modifications = model.loadModifications(mods);
+    alert("Finished applying mods");
   } else {
     handle_action(request.action);
   }

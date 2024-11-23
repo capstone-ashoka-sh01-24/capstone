@@ -259,6 +259,14 @@
     return rootDocument.querySelector(selector(path)) === input;
   }
 
+  // scripts/lib.mjs
+  var allowedActions = {
+    toggleVisibility: "toggleVisibility",
+    toggleAnnotate: "toggleAnnotate",
+    toggleDeannotate: "toggleDeannotate"
+  };
+  var customCSSClasses = ["hovering", "hidden-hover"];
+
   // scripts/model.mjs
   var Hidden = class {
     constructor() {
@@ -286,15 +294,19 @@
     }
     updateContentChange(contentChange) {
     }
-    stringify_property(prop_name2) {
+    /**
+     * @param {string} prop_name
+     * @returns {({variant: string, data: Object})}
+     */
+    stringify_property(prop_name) {
       return {
-        variant: prop_name2,
+        variant: prop_name,
         data: "TODO"
       };
     }
     toJSON() {
       return _CompositeModification.properties.map(
-        this.stringify_property(prop_name)
+        (prop_name) => this.stringify_property(prop_name)
       );
     }
   };
@@ -314,8 +326,10 @@
     }
     setHidden() {
       this.modifications = new Hidden();
+      this.node.classList.add("hidden-hover");
     }
     setCompositeModification() {
+      this.node.classList.remove("hidden-hover");
       this.modifications = new CompositeModification();
     }
     toggleHidden() {
@@ -348,15 +362,9 @@
     }
     /* TODO add further modifications as needed */
   };
-  var allowedActions = {
-    toggleVisibility: "toggleVisibility",
-    toggleAnnotate: "toggleAnnotate",
-    toggleDeannotate: "toggleDeannotate"
-  };
-  var customCSSClasses = ["hovering", "hidden-hover"];
   var PageModifications = class {
     /**
-     * @param {URL} url - The URL of the page.
+     * @param {string} url - The URL of the page.
      */
     constructor(url) {
       this.url = url;
@@ -408,6 +416,44 @@
       }
     }
   };
+  function loadModifications(jsonString) {
+    try {
+      let obj = JSON.parse(jsonString);
+      const page_mods = new PageModifications(obj.url);
+      for (const nodeModObj of obj.nodeModifications) {
+        const node = document.querySelector(nodeModObj.node);
+        for (const modObj of nodeModObj.modifications) {
+          let modification = {
+            action: "",
+            data: null
+          };
+          switch (modObj.variant) {
+            case "hidden":
+              modification.action = allowedActions.toggleVisibility;
+              page_mods.setNodeModification(node, modification);
+              break;
+            default:
+              throw new Error("unrecognised modification variant");
+          }
+        }
+      }
+      console.log("Reconstructed PageMod obj: ", page_mods);
+      return page_mods;
+    } catch (err) {
+      console.error(err);
+      throw new Error("Malformed JSON Modifications object.");
+    }
+  }
+
+  // scripts/digest.mjs
+  async function generateHash(input) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(input);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    return hashHex;
+  }
 
   // scripts/content.js
   var getURL = () => window.location.protocol + "//" + window.location.hostname + (window.location.port ? ":" + window.location.port : "") + window.location.pathname;
@@ -419,7 +465,6 @@
   var toggleHidden = (e) => {
     e.preventDefault();
     const node = e.target;
-    node.classList.toggle("hidden-hover");
     const modification = {
       action: allowedActions.toggleVisibility,
       data: null
@@ -483,15 +528,54 @@
       setAction(action);
     }
   };
-  var saveModifications = () => {
-    console.log("Current Modifications State:", page_modifications);
-    console.log(JSON.stringify(page_modifications, null, 2));
-    alert("Trying to save state.");
+  var generateModifications = () => {
+    return JSON.stringify(page_modifications, null, 2);
   };
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  var logCurrentModifications = (mods) => {
+    console.log("Current Modifications State:", page_modifications);
+    console.log(mods);
+    alert("Trying to save current modified state.");
+  };
+  var setSavedModifications = async (key, value) => {
+    try {
+      await chrome.storage.local.set({
+        [key]: value
+      });
+    } catch {
+      alert("Unsuccessful save");
+    }
+    alert("Saved successfully");
+  };
+  var getSavedModifications = async (key) => {
+    try {
+      const storedModification = await chrome.storage.local.get([key]);
+      if (storedModification[key]) {
+        alert("Found modification!");
+        return storedModification[key];
+      } else {
+        alert("Modification not found :/");
+      }
+    } catch {
+      alert("Error while retrieving modification from Extension Storage");
+    }
+  };
+  var saveModifications = async () => {
+    const hash = await generateHash(page_modifications.url);
+    const mods = generateModifications();
+    logCurrentModifications(mods);
+    await setSavedModifications(hash, mods);
+    console.log("URL Hash:", hash);
+  };
+  chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     console.log(request.action);
     if (request.action == "saveModifications") {
-      saveModifications();
+      await saveModifications();
+    } else if (request.action == "loadModifications") {
+      const hash = await generateHash(page_modifications.url);
+      const mods = await getSavedModifications(hash);
+      console.log("Retrieved Mods:", mods);
+      page_modifications = loadModifications(mods);
+      alert("Finished applying mods");
     } else {
       handle_action(request.action);
     }
