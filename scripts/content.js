@@ -9,11 +9,10 @@ import * as model from "./model.mjs";
 import { allowedActions } from "./lib.mjs";
 import { generateHash } from "./digest.mjs";
 
-/**
+/*
  *
  * @param {Node} node
  * @returns {string}
- */
 function getNodeLocator(node) {
   const uniqueDOMElements = ["body"];
   // check node is valid
@@ -25,6 +24,7 @@ function getNodeLocator(node) {
   //  Xpath Locator
   return "";
 }
+*/
 
 // ---------------------------------------------------------------------
 const getURL = () =>
@@ -128,8 +128,6 @@ const handle_action = (action) => {
     }
 
     for (const [eventName, listener] of current_listeners) {
-      // console.log("Event: ", eventName);
-      // console.log("Listener: ", listener);
       document.addEventListener(eventName, listener);
     }
   };
@@ -155,14 +153,13 @@ const handle_action = (action) => {
 // 3. TODO Load from chrome.storage => JSON => PageModifications
 // This should never be in an invalid state.
 
-const generateModifications = () => {
-  return JSON.stringify(page_modifications, null, 2);
-};
+// const generateModifications = () => {
+//   return JSON.stringify(page_modifications, null, 2);
+// };
 
 const logCurrentModifications = (mods) => {
   console.log("Current Modifications State:", page_modifications);
   console.log(mods);
-  alert("Trying to save current modified state.");
 };
 
 /** @param {string} key
@@ -172,7 +169,8 @@ const setSavedModifications = async (key, value) => {
     await chrome.storage.local.set({
       [key]: value,
     });
-  } catch {
+  } catch (e) {
+    console.error(e);
     alert("Unsuccessful save");
   }
   alert("Saved successfully");
@@ -198,7 +196,7 @@ const getSavedModifications = async (key) => {
 
 const saveModifications = async () => {
   const hash = await generateHash(page_modifications.url);
-  const mods = generateModifications();
+  const mods = page_modifications.generateJSON();
   logCurrentModifications(mods);
   await setSavedModifications(hash, mods);
   console.log("URL Hash:", hash);

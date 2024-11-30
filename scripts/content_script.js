@@ -1,6 +1,6 @@
 "use strict";
 (() => {
-  // node_modules/.deno/@medv+finder@3.2.0/node_modules/@medv/finder/finder.js
+  // node_modules/.pnpm/@medv+finder@3.2.0/node_modules/@medv/finder/finder.js
   var config;
   var rootDocument;
   var start;
@@ -274,40 +274,49 @@
     toJSON() {
       return [
         {
-          variant: "hidden",
-          data: null
+          variant: "hidden"
         }
       ];
     }
   };
   var CompositeModification = class _CompositeModification {
-    static properties = ["annotation", "fontChange", "contentChange"];
+    // static properties = ["annotation", "fontChange", "contentChange"];
+    static properties = ["annotation"];
     constructor() {
       for (const p of _CompositeModification.properties) {
-        this[p] = null;
+        this[p] = void 0;
       }
     }
     updateAnnotation(annotation) {
       this.annotation = annotation;
     }
+    /* TODO
     updateFontChange(fontChange) {
+      this.fontChange = fontChange;
     }
     updateContentChange(contentChange) {
+      this.contentChange = contentChange;
     }
+    */
     /**
-     * @param {string} prop_name
-     * @returns {({variant: string, data: Object})}
-     */
-    stringify_property(prop_name) {
+    
+       * @param {string} prop_name
+       * @returns {({variant: string, data: undefined | Object})}
+       */
+    /*
+     stringify_property(prop_name) {
       return {
         variant: prop_name,
-        data: "TODO"
+        data: undefined,
       };
-    }
+      // TODO data: this[prop_name]
+    } */
     toJSON() {
-      return _CompositeModification.properties.map(
-        (prop_name) => this.stringify_property(prop_name)
+      let json = [];
+      let props = _CompositeModification.properties.filter(
+        (prop_name) => this[prop_name]
       );
+      props.forEach((prop_name) => json.push(JSON.stringify(this[prop_name])));
     }
   };
   var NodeModification = class {
@@ -347,6 +356,16 @@
       }
       this.modifications.updateAnnotation(annotation);
     }
+    isEmpty() {
+      if (this.modifications.constructor.name == CompositeModification.name) {
+        for (const prop_name of CompositeModification.properties) {
+          if (this.modifications[prop_name] !== void 0) {
+            return false;
+          }
+        }
+        return true;
+      }
+    }
     toJSON() {
       let activeCustomCSS = customCSSClasses.filter(
         (cl) => this.node.classList.contains(cl)
@@ -354,11 +373,14 @@
       this.node.classList.remove(...customCSSClasses);
       let json_obj = {
         node: finder(this.node),
+        // TODO: modifications: null (for unimplemented/empty mods);
         modifications: this.modifications.toJSON()
       };
       console.log(this.node);
       this.node.classList.add(...activeCustomCSS);
-      return json_obj;
+      if (json_obj.modifications !== void 0) {
+        return json_obj;
+      }
     }
     /* TODO add further modifications as needed */
   };
@@ -414,6 +436,32 @@
         case allowedActions.toggleAnnotate:
           nodeModification.updateAnnotation(modification.data);
       }
+    }
+    // toJSON() {
+    //   let mods = this.nodeModifications
+    //     .map((mod) => JSON.stringify(mod, null, 2))
+    //     .filter((json) => json !== "null");
+    //   return {
+    //     url: JSON.stringify(this.url),
+    //     nodeModifications: mods,
+    //   };
+    // }
+    /** Stringifies the current state of the modifications object,
+    removes empty modifications
+    * @returns {string}
+    */
+    generateJSON() {
+      let json = JSON.stringify(
+        {
+          ...this,
+          nodeModifications: this.nodeModifications.filter(
+            (nodeMod) => !nodeMod.isEmpty()
+          )
+        },
+        null,
+        2
+      );
+      return json;
     }
   };
   function loadModifications(jsonString) {
@@ -528,9 +576,6 @@
       setAction(action);
     }
   };
-  var generateModifications = () => {
-    return JSON.stringify(page_modifications, null, 2);
-  };
   var logCurrentModifications = (mods) => {
     console.log("Current Modifications State:", page_modifications);
     console.log(mods);
@@ -561,7 +606,7 @@
   };
   var saveModifications = async () => {
     const hash = await generateHash(page_modifications.url);
-    const mods = generateModifications();
+    const mods = page_modifications.generateJSON();
     logCurrentModifications(mods);
     await setSavedModifications(hash, mods);
     console.log("URL Hash:", hash);

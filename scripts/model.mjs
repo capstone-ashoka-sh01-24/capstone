@@ -13,7 +13,6 @@ export class Hidden {
     return [
       {
         variant: "hidden",
-        data: null,
       },
     ];
   }
@@ -28,6 +27,13 @@ export class Annotation {
    */
   constructor(text) {
     this.text = text;
+  }
+
+  toJSON() {
+    return {
+      variant: "annotation",
+      data: undefined,
+    };
   }
 }
 
@@ -59,11 +65,12 @@ export class ContentChange {
  * Modifications container type
  */
 export class CompositeModification {
-  static properties = ["annotation", "fontChange", "contentChange"];
+  // static properties = ["annotation", "fontChange", "contentChange"];
+  static properties = ["annotation"];
 
   constructor() {
     for (const p of CompositeModification.properties) {
-      this[p] = null;
+      this[p] = undefined;
     }
     // this.annotation = null;
     // this.fontChange = null;
@@ -74,25 +81,35 @@ export class CompositeModification {
     this.annotation = annotation;
   }
 
-  updateFontChange(fontChange) {}
-  updateContentChange(contentChange) {}
+  /* TODO
+  updateFontChange(fontChange) {
+    this.fontChange = fontChange;
+  }
+  updateContentChange(contentChange) {
+    this.contentChange = contentChange;
+  }
+  */
 
   /**
+
    * @param {string} prop_name
-   * @returns {({variant: string, data: Object})}
+   * @returns {({variant: string, data: undefined | Object})}
    */
-  stringify_property(prop_name) {
+  /*
+   stringify_property(prop_name) {
     return {
       variant: prop_name,
-      data: "TODO",
+      data: undefined,
     };
     // TODO data: this[prop_name]
-  }
+  } */
 
   toJSON() {
-    return CompositeModification.properties.map((prop_name) =>
-      this.stringify_property(prop_name),
+    let json = [];
+    let props = CompositeModification.properties.filter(
+      (prop_name) => this[prop_name],
     );
+    props.forEach((prop_name) => json.push(JSON.stringify(this[prop_name])));
   }
 }
 
@@ -146,6 +163,17 @@ export class NodeModification {
     this.modifications.updateAnnotation(annotation);
   }
 
+  isEmpty() {
+    if (this.modifications.constructor.name == CompositeModification.name) {
+      for (const prop_name of CompositeModification.properties) {
+        if (this.modifications[prop_name] !== undefined) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
   toJSON() {
     let activeCustomCSS = customCSSClasses.filter((cl) =>
       this.node.classList.contains(cl),
@@ -157,6 +185,7 @@ export class NodeModification {
     // serialize the modification
     let json_obj = {
       node: finder(this.node),
+      // TODO: modifications: null (for unimplemented/empty mods);
       modifications: this.modifications.toJSON(),
     };
 
@@ -164,7 +193,9 @@ export class NodeModification {
     console.log(this.node);
     this.node.classList.add(...activeCustomCSS);
 
-    return json_obj;
+    if (json_obj.modifications !== undefined) {
+      return json_obj;
+    }
   }
   /* TODO add further modifications as needed */
 }
@@ -243,6 +274,36 @@ export class PageModifications {
     // In a way that gives the content script
     // an idea of the current state of the modification
     // To simultaneously ensure no invalid actions are ocurring.
+  }
+
+  // toJSON() {
+  //   let mods = this.nodeModifications
+  //     .map((mod) => JSON.stringify(mod, null, 2))
+  //     .filter((json) => json !== "null");
+
+  //   return {
+  //     url: JSON.stringify(this.url),
+  //     nodeModifications: mods,
+  //   };
+  // }
+
+  /** Stringifies the current state of the modifications object,
+  removes empty modifications
+  * @returns {string}
+  */
+  generateJSON() {
+    // get rid of empty NodeModifications
+    let json = JSON.stringify(
+      {
+        ...this,
+        nodeModifications: this.nodeModifications.filter(
+          (nodeMod) => !nodeMod.isEmpty(),
+        ),
+      },
+      null,
+      2,
+    );
+    return json;
   }
 }
 
