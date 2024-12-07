@@ -57,8 +57,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Ensure the message is from a content script
   if (sender.tab) {
-    // Ensure the message is from a content script
     handleMessageFromContentScript(request)
       .then((response) => sendResponse(response))
       .catch((error) => {
