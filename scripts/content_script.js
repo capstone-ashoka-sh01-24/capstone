@@ -470,19 +470,28 @@
       const page_mods = new PageModifications(obj.url);
       for (const nodeModObj of obj.nodeModifications) {
         const node = document.querySelector(nodeModObj.node);
-        for (const modObj of nodeModObj.modifications) {
-          let modification = {
-            action: "",
-            data: null
-          };
-          switch (modObj.variant) {
-            case "hidden":
-              modification.action = allowedActions.toggleVisibility;
-              page_mods.setNodeModification(node, modification);
-              break;
-            default:
-              throw new Error("unrecognised modification variant");
+        if (node !== null) {
+          for (const modObj of nodeModObj.modifications) {
+            console.log(
+              `Element: ${nodeModObj.node} found on page. Applying mods.`
+            );
+            let modification = {
+              action: "",
+              data: null
+            };
+            switch (modObj.variant) {
+              case "hidden":
+                modification.action = allowedActions.toggleVisibility;
+                page_mods.setNodeModification(node, modification);
+                break;
+              default:
+                throw new Error("unrecognised modification variant");
+            }
           }
+        } else {
+          console.error(
+            `Element: ${nodeModObj.node} not found on page. Skipping mods.`
+          );
         }
       }
       console.log("Reconstructed PageMod obj: ", page_mods);
@@ -636,6 +645,10 @@
       handle_action(request.action);
     }
   });
-  fetchModifications();
+  document.onreadystatechange = () => {
+    if (document.readyState === "complete") {
+      fetchModifications();
+    }
+  };
 })();
 //# sourceMappingURL=content_script.js.map

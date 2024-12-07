@@ -38,18 +38,6 @@ export class Annotation {
 }
 
 /**
- * Represents a font change.
- */
-export class FontChange {
-  /**
-   * @param {string} font - The new font name.
-   */
-  constructor(font) {
-    this.font = font;
-  }
-}
-
-/**
  * Represents a content change.
  */
 export class ContentChange {
@@ -58,6 +46,18 @@ export class ContentChange {
    */
   constructor(content) {
     this.content = content;
+  }
+}
+
+/**
+ * Represents a font change.
+ */
+export class FontChange {
+  /**
+   * @param {string} font - The new font name.
+   */
+  constructor(font) {
+    this.font = font;
   }
 }
 
@@ -269,23 +269,11 @@ export class PageModifications {
         nodeModification.updateAnnotation(modification.data);
     }
 
-    // TODO
-    // Figure out a way to get the modification payload
+    // get the modification payload
     // In a way that gives the content script
     // an idea of the current state of the modification
     // To simultaneously ensure no invalid actions are ocurring.
   }
-
-  // toJSON() {
-  //   let mods = this.nodeModifications
-  //     .map((mod) => JSON.stringify(mod, null, 2))
-  //     .filter((json) => json !== "null");
-
-  //   return {
-  //     url: JSON.stringify(this.url),
-  //     nodeModifications: mods,
-  //   };
-  // }
 
   /** Stringifies the current state of the modifications object,
   removes empty modifications
@@ -320,20 +308,29 @@ export function loadModifications(jsonString) {
     for (const nodeModObj of obj.nodeModifications) {
       const node = document.querySelector(nodeModObj.node);
 
-      for (const modObj of nodeModObj.modifications) {
-        let modification = {
-          action: "",
-          data: null,
-        };
+      if (node !== null) {
+        for (const modObj of nodeModObj.modifications) {
+          console.log(
+            `Element: ${nodeModObj.node} found on page. Applying mods.`,
+          );
+          let modification = {
+            action: "",
+            data: null,
+          };
 
-        switch (modObj.variant) {
-          case "hidden":
-            modification.action = allowedActions.toggleVisibility;
-            page_mods.setNodeModification(node, modification);
-            break;
-          default:
-            throw new Error("unrecognised modification variant");
+          switch (modObj.variant) {
+            case "hidden":
+              modification.action = allowedActions.toggleVisibility;
+              page_mods.setNodeModification(node, modification);
+              break;
+            default:
+              throw new Error("unrecognised modification variant");
+          }
         }
+      } else {
+        console.log(
+          `Error: Element ${nodeModObj.node} not found on page. Skipping mods.`,
+        );
       }
     }
     console.log("Reconstructed PageMod obj: ", page_mods);

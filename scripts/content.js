@@ -230,4 +230,8 @@ chrome.runtime.onMessage.addListener(async (request) => {
 });
 
 // Load modifications when the extension first gets loaded into the webpage
-fetchModifications();
+document.onreadystatechange = () => {
+  if (document.readyState === "complete") {
+    fetchModifications();
+  }
+};
