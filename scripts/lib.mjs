@@ -1,7 +1,8 @@
 export const allowedActions = {
   toggleVisibility: "toggleVisibility",
   toggleAnnotate: "toggleAnnotate",
-  toggleDeannotate: "toggleDeannotate",
+  toggleTextChange: "toggleTextChange",
+  // toggleDeannotate: "toggleDeannotate",
 };
 
 export const customCSSClasses = ["hovering", "hidden-hover"];

@@ -3,44 +3,84 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="../css/popup.css" />
+        <!-- <link rel="stylesheet" href="../css/popup.css" /> -->
         <title>Popup</title>
         <style>
             body {
-                width: 300px;
-                height: 400px;
-                /* overflow: hidden;
+                width: 250px;
+                height: minmax(auto, 350px);
                 display: flex;
                 flex-direction: column;
+                box-sizing: border-box;
+            }
+
+            .container-btns {
+                flex: 1;
+                padding: 0.25rem;
+                box-sizing: border-box;
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                grid-auto-rows: 3.75rem;
+                gap: 0.65rem;
+            }
+
+            .container-messages {
+                flex: 1;
+                padding: 0.25rem;
+                overflow-y: auto;
+                display: grid;
+                grid-template-columns: repeat(1fr);
+            }
+
+            button {
+                border-radius: 0.65rem;
+                font-size: 0.9rem;
+                box-sizing: border-box;
+                display: flex;
+                flex: 1;
                 align-items: center;
-                justify-content: center; */
+                justify-content: center;
+            }
+
+            button:disabled {
+                background-color: grey;
+                border: solid 1px grey;
+            }
+
+            .edit {
+                color: #f2f2f2;
+                background-color: #0062d9;
+                border: solid 1px #0062d9;
+            }
+
+            .edit:hover {
+                color: #0062d9;
+                background-color: #f2f2f2;
+            }
+
+            .save {
+                color: #f2f2f2;
+                background-color: #067480;
+                border: solid 1px #007099;
+            }
+
+            .save:hover {
+                color: #067480;
+                background-color: #f2f2f2;
             }
         </style>
     </head>
     <body>
-        <!-- <div class="container-btns" id="edit">
-            <div class="container-btn">
-                <button id="btn-edit">Modify Webpage</button>
-            </div>
-        </div> -->
-        <div class="container-btns" id="mod">
-            <div class="container-btn">
-                <button id="btn-toggleVisibility">Hide</button>
-            </div>
-            <div class="container-btn">
-                <button id="btn-toggleAnnotate">Annotate</button>
-            </div>
-            <div class="container-btn">
-                <button id="btn-toggleDeannotate">Deannotate</button>
-            </div>
+        <div class="container-btns">
+            <button id="btn-toggleVisible" class="edit">Hide 🙈</button>
+            <button id="btn-toggleDelete" class="edit">Delete 🚫</button>
+            <button id="btn-toggleAnnotate" class="edit">Annotate 📝</button>
+            <button id="btn-toggleRewrite" class="edit">Rewrite 🖋️</button>
+            <button id="btn-save" class="save">Save 💾</button>
+            <button id="btn-load" class="save">Load 🔍</button>
         </div>
-        <div class="container-btns" id="save">
-            <div class="container-btn">
-                <button id="btn-save">Save Modifications</button>
-            </div>
-            <div class="container-btn">
-                <button id="btn-load">Load Modifications</button>
-            </div>
+        <div class="container-messages" id="log">
+            <!-- Space for logging messages -->
         </div>
     </body>
     <script src="../scripts/popup.js" type="module"></script>
