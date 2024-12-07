@@ -5,30 +5,41 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="stylesheet" href="../css/popup.css" />
         <title>Popup</title>
+        <style>
+            body {
+                width: 300px;
+                height: 400px;
+                /* overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center; */
+            }
+        </style>
     </head>
     <body>
-        <div class="container-btns" id="edit">
+        <!-- <div class="container-btns" id="edit">
             <div class="container-btn">
                 <button id="btn-edit">Modify Webpage</button>
             </div>
-        </div>
+        </div> -->
         <div class="container-btns" id="mod">
             <div class="container-btn">
-                <button id="btn-toggleVisibility">Show/Hide Elements</button>
+                <button id="btn-toggleVisibility">Hide</button>
             </div>
             <div class="container-btn">
-                <button id="btn-toggleAnnotate">Add Annotation</button>
+                <button id="btn-toggleAnnotate">Annotate</button>
             </div>
             <div class="container-btn">
-                <button id="btn-toggleDeannotate">Remove Annotation</button>
+                <button id="btn-toggleDeannotate">Deannotate</button>
             </div>
         </div>
         <div class="container-btns" id="save">
             <div class="container-btn">
-                <button id="btn-save">Save Modifications as JSON</button>
+                <button id="btn-save">Save Modifications</button>
             </div>
             <div class="container-btn">
-                <button id="btn-load">Load Modifications as JSON</button>
+                <button id="btn-load">Load Modifications</button>
             </div>
         </div>
     </body>

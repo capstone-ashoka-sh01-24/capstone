@@ -202,17 +202,32 @@ const saveModifications = async () => {
   console.log("URL Hash:", hash);
 };
 
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+const fetchModifications = async () => {
+  const hash = await generateHash(page_modifications.url);
+  const mods = await getSavedModifications(hash);
+  if (mods) {
+    console.log("Retrieved Mods:", mods);
+    try {
+      page_modifications = model.loadModifications(mods);
+      alert("Modifications Loaded.");
+    } catch (error) {
+      console.error("Error loading modifications:", error);
+      page_modifications = new model.PageModifications(getURL());
+      alert("Failed to load modifications.");
+    }
+  }
+};
+
+chrome.runtime.onMessage.addListener(async (request) => {
   console.log(request.action);
   if (request.action == "saveModifications") {
     await saveModifications();
   } else if (request.action == "loadModifications") {
-    const hash = await generateHash(page_modifications.url);
-    const mods = await getSavedModifications(hash);
-    console.log("Retrieved Mods:", mods);
-    page_modifications = model.loadModifications(mods);
-    alert("Finished applying mods");
+    await fetchModifications();
   } else {
     handle_action(request.action);
   }
 });
+
+// Load modifications when the extension first gets loaded into the webpage
+fetchModifications();
