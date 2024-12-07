@@ -1,60 +1,56 @@
 // send generic messages to background script
+
+import { allowedActions, stateActions } from "./lib.mjs";
+
+const btn_hide = document.getElementById(`btn-${allowedActions.hide}`);
+const btn_delete = document.getElementById(`btn-${allowedActions.delete}`);
+const btn_annotate = document.getElementById(`btn-${allowedActions.annotate}`);
+const btn_rewrite = document.getElementById(`btn-${allowedActions.rewrite}`);
+const btn_save = document.getElementById(`btn-${stateActions.save}`);
+const btn_load = document.getElementById(`btn-${stateActions.load}`);
+
+/**
+ * @type {Array<[HTMLButtonElement, string]>}
+ */
+const buttons = [
+  [btn_hide, allowedActions.hide],
+  [btn_delete, allowedActions.delete],
+  [btn_annotate, allowedActions.annotate],
+  [btn_rewrite, allowedActions.rewrite],
+  [btn_save, stateActions.save],
+  [btn_load, stateActions.load],
+];
+
+debugger;
+buttons.forEach(([button, message]) => {
+  button.addEventListener("click", () => send_message(message));
+});
+
+/**
+ *
+ * @param {string} body
+ */
 const send_message = async (body) => {
   console.log("Message to bg: ", body);
-  const response = await chrome.runtime.sendMessage({ action: body });
-  if (response) {
-    console.log("Tab Object", response.status);
-  } else {
-    console.error("Communication abruptly ended from bg script");
-  }
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const response = await chrome.tabs.sendMessage(tab.id, { action: body });
+  // if (response) {
+  //   console.log("Tab Object", response.status);
+  // } else {
+  //   console.error("Communication abruptly ended from content.");
+  // }
 };
 
-// when button is clicked send message accordingly
-const toggleVisiblity = () => {
-  send_message("toggleVisiblity");
+const msg_container = document.getElementById("container-messages");
+
+/** @param {string} action */
+const activate = (action) => {
+  let div = document.createElement("div");
+  div.id = "active";
+  div.innerHTML = `Active: <span>${action}</span>`;
 };
 
-const toggleAnnotate = () => {
-  send_message("toggleAnnotate");
+const deactivate = () => {
+  let div = document.getElementById("active");
+  div && document.removeChild(div);
 };
-
-// const toggleDeannotate = () => {
-//   send_message("toggleDeannotate");
-// };
-
-const saveModifications = () => {
-  send_message("saveModifications");
-};
-
-const loadModifications = () => {
-  send_message("loadModifications");
-};
-
-const visbility_btn = document.getElementById("btn-toggleVisibility");
-const annotation_btn = document.getElementById("btn-toggleAnnotate");
-// const deannotation_btn = document.getElementById("btn-toggleDeannotate");
-const save_btn = document.getElementById("btn-save");
-const load_btn = document.getElementById("btn-load");
-
-const buttons = [
-  visbility_btn,
-  annotation_btn,
-  // deannotation_btn,
-  save_btn,
-  load_btn,
-];
-const listeners = [
-  toggleVisiblity,
-  toggleAnnotate,
-  // toggleDeannotate,
-  saveModifications,
-  loadModifications,
-];
-
-for (let i = 0; i < buttons.length; i++) {
-  const button = buttons[i];
-  const listener = listeners[i];
-
-  button.addEventListener("click", listener);
-  // console.log(button.listeners);
-}

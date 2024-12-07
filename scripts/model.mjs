@@ -259,13 +259,13 @@ export class PageModifications {
     }
 
     switch (modification.action) {
-      case allowedActions.toggleVisibility:
+      case allowedActions.hide:
         nodeModification.toggleHidden();
         break;
-      case allowedActions.toggleDeannotate:
-        nodeModification.updateAnnotation(null);
-        break;
-      case allowedActions.toggleAnnotate:
+      // case allowedActions.toggleDeannotate:
+      //   nodeModification.updateAnnotation(null);
+      //   break;
+      case allowedActions.annotate:
         nodeModification.updateAnnotation(modification.data);
     }
 
@@ -296,7 +296,8 @@ export class PageModifications {
 }
 
 /**
- *
+ * Loads JSON string containing modifications into a PageModifications object.
+ * To be immediately applied by the content script.
  * @param {string} jsonString
  * @returns {PageModifications | Error}
  */
@@ -320,7 +321,7 @@ export function loadModifications(jsonString) {
 
           switch (modObj.variant) {
             case "hidden":
-              modification.action = allowedActions.toggleVisibility;
+              modification.action = allowedActions.hide;
               page_mods.setNodeModification(node, modification);
               break;
             default:

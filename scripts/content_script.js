@@ -1,5 +1,31 @@
 "use strict";
 (() => {
+  // scripts/lib.mjs
+  var allowedActions = {
+    hide: "toggleHide",
+    annotate: "toggleAnnotate",
+    delete: "toggleDelete",
+    rewrite: "toggleRewrite"
+  };
+  var stateActions = {
+    save: "save",
+    load: "load"
+  };
+  var customCSSClasses = ["hovering", "hidden-hover"];
+  var isValidAction = (action) => {
+    return Object.values(allowedActions).includes(action) || Object.values(stateActions).includes(action);
+  };
+
+  // scripts/digest.mjs
+  async function generateHash(input) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(input);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    return hashHex;
+  }
+
   // node_modules/.pnpm/@medv+finder@3.2.0/node_modules/@medv/finder/finder.js
   var config;
   var rootDocument;
@@ -259,14 +285,6 @@
     return rootDocument.querySelector(selector(path)) === input;
   }
 
-  // scripts/lib.mjs
-  var allowedActions = {
-    toggleVisibility: "toggleVisibility",
-    toggleAnnotate: "toggleAnnotate",
-    toggleDeannotate: "toggleDeannotate"
-  };
-  var customCSSClasses = ["hovering", "hidden-hover"];
-
   // scripts/model.mjs
   var Hidden = class {
     constructor() {
@@ -427,25 +445,16 @@
         nodeModification = this.addNodeModification(node);
       }
       switch (modification.action) {
-        case allowedActions.toggleVisibility:
+        case allowedActions.hide:
           nodeModification.toggleHidden();
           break;
-        case allowedActions.toggleDeannotate:
-          nodeModification.updateAnnotation(null);
-          break;
-        case allowedActions.toggleAnnotate:
+        // case allowedActions.toggleDeannotate:
+        //   nodeModification.updateAnnotation(null);
+        //   break;
+        case allowedActions.annotate:
           nodeModification.updateAnnotation(modification.data);
       }
     }
-    // toJSON() {
-    //   let mods = this.nodeModifications
-    //     .map((mod) => JSON.stringify(mod, null, 2))
-    //     .filter((json) => json !== "null");
-    //   return {
-    //     url: JSON.stringify(this.url),
-    //     nodeModifications: mods,
-    //   };
-    // }
     /** Stringifies the current state of the modifications object,
     removes empty modifications
     * @returns {string}
@@ -481,7 +490,7 @@
             };
             switch (modObj.variant) {
               case "hidden":
-                modification.action = allowedActions.toggleVisibility;
+                modification.action = allowedActions.hide;
                 page_mods.setNodeModification(node, modification);
                 break;
               default:
@@ -489,8 +498,8 @@
             }
           }
         } else {
-          console.error(
-            `Element: ${nodeModObj.node} not found on page. Skipping mods.`
+          console.log(
+            `Error: Element ${nodeModObj.node} not found on page. Skipping mods.`
           );
         }
       }
@@ -502,152 +511,215 @@
     }
   }
 
-  // scripts/digest.mjs
-  async function generateHash(input) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(input);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-    return hashHex;
-  }
+  // scripts/sync.mjs
+  var ModificationStorage = class {
+    /**
+     * Fetches data from the store.
+     * @param {string} key - The key to fetch data for.
+     * @returns {Promise<null|string>} The fetched data or null if an error occurs.
+     */
+    async get(key) {
+      return null;
+    }
+    /**
+     * Sets data in the store.
+     * @param {string} key - The key to set data for.
+     * @param {string} value - The JSON string value to set.
+     * @returns {Promise<boolean>} True if the data was set successfully, false otherwise.
+     */
+    async set(key, value) {
+      return false;
+    }
+  };
+  var OfflineModificationStorage = class extends ModificationStorage {
+    /**
+     * @param {string} key - url hash */
+    static async get(key) {
+      try {
+        const storedModification = await chrome.storage.local.get([key]);
+        if (storedModification[key]) {
+          console.log("Found modification!");
+          return storedModification[key];
+        } else {
+          console.log("Modification not found :/");
+          return null;
+        }
+      } catch {
+        console.error(
+          "Error while retrieving modification from Extension Storage"
+        );
+        return null;
+      }
+    }
+    /** @param {string} key - url hash
+     * @param {string} value - json modifications*/
+    static async set(key, value) {
+      try {
+        await chrome.storage.local.set({
+          [key]: value
+        });
+      } catch (e) {
+        console.error(e);
+        alert("Could not save");
+        return false;
+      }
+      alert("Saved successfully");
+      return true;
+    }
+  };
 
   // scripts/content.js
   var getURL = () => window.location.protocol + "//" + window.location.hostname + (window.location.port ? ":" + window.location.port : "") + window.location.pathname;
-  var page_modifications = new PageModifications(getURL());
   var toggleHoveringStyle = (e) => {
+    console.assert(e.target);
     e.preventDefault();
     e.target.classList.toggle("hovering");
   };
-  var toggleHidden = (e) => {
-    e.preventDefault();
-    const node = e.target;
-    const modification = {
-      action: allowedActions.toggleVisibility,
-      data: null
-    };
-    console.log("Node:", node);
-    console.log("Modification:", modification);
-    page_modifications.setNodeModification(node, modification);
-  };
-  var addAnnotation = (e) => {
-    e.preventDefault();
-    const ann = document.createElement("p");
-    ann.innerHTML = "Sample Text Annotation";
-    ann.className = "custom-annotation";
-    e.target.insertAdjacentElement("afterend", ann);
-  };
-  var deleteAnnotation = (e) => {
-    e.preventDefault();
-    const elem = e.target;
-    if (elem.classList.contains("custom-annotation")) {
-      elem.remove();
+  var ExtensionState = class {
+    constructor() {
+      this.url = getURL();
+      this.url_hash = void 0;
+      this.page_modifications = new PageModifications(this.url);
+      this.current_action = void 0;
+      this.current_listeners = [];
+      this.is_online = true;
     }
-  };
-  var current_action = void 0;
-  var current_listeners = [];
-  var handle_action = (action) => {
-    const unsetAction = () => {
-      for (const [eventName, listener] of current_listeners) {
+    async getURLHash() {
+      if (this.url_hash === void 0) {
+        this.url_hash = await generateHash(this.url);
+      }
+      return this.url_hash;
+    }
+    unsetAction() {
+      for (const [eventName, listener] of this.current_listeners) {
         document.removeEventListener(eventName, listener);
       }
-      current_action = void 0;
-    };
-    const setAction = (action2) => {
-      current_action = action2;
-      current_listeners = [
+      this.current_action = void 0;
+    }
+    /** @param {string} action */
+    setAction(action) {
+      this.current_action = action;
+      this.current_listeners = [
         ["mouseover", toggleHoveringStyle],
         ["mouseout", toggleHoveringStyle]
       ];
-      switch (action2) {
-        case "toggleAnnotate":
-          current_listeners.push(["click", addAnnotation]);
-          break;
-        case "toggleDeannotate":
-          current_listeners.push(["click", deleteAnnotation]);
-          break;
-        case "toggleVisiblity":
-          current_listeners.push(["click", toggleHidden]);
-          break;
-        default:
-          break;
-      }
-      for (const [eventName, listener] of current_listeners) {
+      this.current_listeners.push([
+        "click",
+        (e) => {
+          e.preventDefault();
+          const node = e.target;
+          const modification = {
+            action,
+            data: null
+            // TODO for different types of mods
+          };
+          console.log("Node:", node);
+          console.log("Modification:", modification);
+          console.log(this);
+          this.page_modifications.setNodeModification(node, modification);
+        }
+      ]);
+      for (const [eventName, listener] of this.current_listeners) {
         document.addEventListener(eventName, listener);
       }
-    };
-    if (current_action !== void 0 && current_action !== action) {
-      unsetAction();
-      setAction(action);
-    } else if (current_action === action) {
-      unsetAction();
-    } else {
-      setAction(action);
     }
-  };
-  var logCurrentModifications = (mods) => {
-    console.log("Current Modifications State:", page_modifications);
-    console.log(mods);
-  };
-  var setSavedModifications = async (key, value) => {
-    try {
-      await chrome.storage.local.set({
-        [key]: value
-      });
-    } catch (e) {
-      console.error(e);
-      alert("Unsuccessful save");
-    }
-    alert("Saved successfully");
-  };
-  var getSavedModifications = async (key) => {
-    try {
-      const storedModification = await chrome.storage.local.get([key]);
-      if (storedModification[key]) {
-        alert("Found modification!");
-        return storedModification[key];
+    /** @param {string} action */
+    handleAction(action) {
+      if (this.current_action !== void 0 && this.current_action !== action) {
+        this.unsetAction();
+        this.setAction(action);
+      } else if (this.current_action === action) {
+        this.unsetAction();
       } else {
-        alert("Modification not found :/");
+        this.setAction(action);
       }
-    } catch {
-      alert("Error while retrieving modification from Extension Storage");
     }
-  };
-  var saveModifications = async () => {
-    const hash = await generateHash(page_modifications.url);
-    const mods = page_modifications.generateJSON();
-    logCurrentModifications(mods);
-    await setSavedModifications(hash, mods);
-    console.log("URL Hash:", hash);
-  };
-  var fetchModifications = async () => {
-    const hash = await generateHash(page_modifications.url);
-    const mods = await getSavedModifications(hash);
-    if (mods) {
-      console.log("Retrieved Mods:", mods);
+    /** @param {string} mods */
+    logModifications(mods) {
+      console.log("Current Modifications State:", this.page_modifications);
+      console.log(mods);
+    }
+    // Figure out how to cache the hash so that
+    // const hash = generateHash(page_modifications.url);
+    async saveModifications() {
+      const hash = await this.getURLHash();
+      const mods = this.page_modifications.generateJSON();
+      this.logModifications(mods);
+      await OfflineModificationStorage.set(hash, mods);
+      if (this.is_online) {
+        const success = await chrome.runtime.sendMessage({
+          type: "set",
+          key: hash,
+          value: mods
+        });
+        if (!success) {
+          console.log("Could not save modifications to server.");
+        }
+      }
+      console.log("URL Hash:", hash);
+    }
+    async fetchModifications() {
+      const hash = await this.getURLHash();
+      let mods = void 0;
       try {
-        page_modifications = loadModifications(mods);
-        alert("Modifications Loaded.");
+        const online_mods = await chrome.runtime.sendMessage({
+          type: "get",
+          key: hash
+        });
+        if (online_mods !== null) {
+          mods = online_mods;
+          console.log("Found Online");
+        }
       } catch (error) {
-        console.error("Error loading modifications:", error);
-        page_modifications = new PageModifications(getURL());
-        alert("Failed to load modifications.");
+        console.error(
+          "While trying to retrieve modifications from the server: ",
+          error
+        );
+      }
+      if (mods === void 0) {
+        console.log(this.is_online);
+        try {
+          const offline_mods = await OfflineModificationStorage.get(hash);
+          if (offline_mods !== null) {
+            mods = offline_mods;
+            console.log("Found Offline");
+          }
+        } catch (error) {
+          console.error(
+            "While trying to retrieve modifications from extension storage: ",
+            error
+          );
+        }
+      }
+      if (mods !== void 0) {
+        console.log("Retrieved Mods:", mods);
+        try {
+          this.page_modifications = loadModifications(mods);
+          console.log("Modifications Applied.");
+        } catch (error) {
+          console.error("Error applying modifications:", error);
+          this.page_modifications = new PageModifications(getURL());
+          console.error("Failed to apply modifications.");
+        }
       }
     }
   };
+  var state = new ExtensionState();
   chrome.runtime.onMessage.addListener(async (request) => {
-    console.log(request.action);
-    if (request.action == "saveModifications") {
-      await saveModifications();
-    } else if (request.action == "loadModifications") {
-      await fetchModifications();
+    console.assert(isValidAction(request.action));
+    if (request.action == stateActions.save) {
+      await state.saveModifications();
+    } else if (request.action == stateActions.load) {
+      await state.fetchModifications();
     } else {
-      handle_action(request.action);
+      state.handleAction(request.action);
     }
   });
-  document.onreadystatechange = () => {
+  window.addEventListener("offline", () => state.is_online = false);
+  window.addEventListener("online", () => state.is_online = true);
+  document.onreadystatechange = async () => {
     if (document.readyState === "complete") {
-      fetchModifications();
+      await state.fetchModifications();
     }
   };
 })();

@@ -16,6 +16,7 @@
   },
 
   "permissions": ["scripting", "activeTab", "tabs", "storage"],
+  "host_permissions": ["https://extension-saver-sh01-24.deno.dev/*"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
