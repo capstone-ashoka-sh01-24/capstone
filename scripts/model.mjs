@@ -182,12 +182,19 @@ export class NodeModification {
     // remove the extension-added CSS
     this.node.classList.remove(...customCSSClasses);
 
+    let json_obj = undefined;
     // serialize the modification
-    let json_obj = {
-      node: finder(this.node),
-      // TODO: modifications: null (for unimplemented/empty mods);
-      modifications: this.modifications.toJSON(),
-    };
+    try {
+      const elem = finder(this.node);
+
+      json_obj = {
+        node: elem,
+        // TODO: modifications: null (for unimplemented/empty mods);
+        modifications: this.modifications.toJSON(),
+      };
+    } catch (e) {
+      console.log("Couldn't find node: ", this.node);
+    }
 
     // add back the extension-added CSS
     console.log(this.node);
