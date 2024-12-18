@@ -5,14 +5,16 @@ import { allowedActions, customCSSClasses } from "./lib.mjs";
  * Represents a hide action.
  */
 export class Hidden {
-  constructor() {
-    // This export class represents a hidden state; no properties needed.
+  constructor(type) {
+    // TODO specify the type of hidden - (deleted from DOM or simply invisible)
+    this.type = type;
   }
 
   toJSON() {
     return [
       {
         variant: "hidden",
+        data: this.type,
       },
     ];
   }
@@ -32,7 +34,7 @@ export class Annotation {
   toJSON() {
     return {
       variant: "annotation",
-      data: undefined,
+      data: this.text,
     };
   }
 }
@@ -40,24 +42,19 @@ export class Annotation {
 /**
  * Represents a content change.
  */
-export class ContentChange {
+export class TextChange {
   /**
-   * @param {string} content - The new content.
+   * @param {string} text - The new content.
    */
-  constructor(content) {
-    this.content = content;
+  constructor(text) {
+    this.text = text;
   }
-}
 
-/**
- * Represents a font change.
- */
-export class FontChange {
-  /**
-   * @param {string} font - The new font name.
-   */
-  constructor(font) {
-    this.font = font;
+  toJSON() {
+    return {
+      variant: "textchange",
+      data: this.text,
+    };
   }
 }
 
@@ -65,44 +62,21 @@ export class FontChange {
  * Modifications container type
  */
 export class CompositeModification {
-  // static properties = ["annotation", "fontChange", "contentChange"];
-  static properties = ["annotation"];
+  static properties = ["annotation", "textchange"];
 
   constructor() {
     for (const p of CompositeModification.properties) {
       this[p] = undefined;
     }
-    // this.annotation = null;
-    // this.fontChange = null;
-    // this.contentChange = null;
   }
 
   updateAnnotation(annotation) {
     this.annotation = annotation;
   }
 
-  /* TODO
-  updateFontChange(fontChange) {
-    this.fontChange = fontChange;
+  updateTextChange(textchange) {
+    this.textchange = textchange;
   }
-  updateContentChange(contentChange) {
-    this.contentChange = contentChange;
-  }
-  */
-
-  /**
-
-   * @param {string} prop_name
-   * @returns {({variant: string, data: undefined | Object})}
-   */
-  /*
-   stringify_property(prop_name) {
-    return {
-      variant: prop_name,
-      data: undefined,
-    };
-    // TODO data: this[prop_name]
-  } */
 
   toJSON() {
     let json = [];
@@ -147,9 +121,9 @@ export class NodeModification {
 
   toggleHidden() {
     // debugger;
-    console.log("Before Toggle:", this, this.isHidden());
+    // console.log("Before Toggle:", this, this.isHidden());
     this.isHidden() ? this.setCompositeModification() : this.setHidden();
-    console.log("After Toggle:", this, this.isHidden());
+    // console.log("After Toggle:", this, this.isHidden());
   }
 
   /**
@@ -269,11 +243,10 @@ export class PageModifications {
       case allowedActions.hide:
         nodeModification.toggleHidden();
         break;
-      // case allowedActions.toggleDeannotate:
-      //   nodeModification.updateAnnotation(null);
-      //   break;
       case allowedActions.annotate:
         nodeModification.updateAnnotation(modification.data);
+      case allowedActions.delete:
+        nodeModification.updateText();
     }
 
     // get the modification payload

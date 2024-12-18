@@ -1,8 +1,16 @@
 .hovering {
-  border: 2px solid blue;
+    border: 2px solid blue;
 }
 
 .hidden-hover {
-  pointer-events: all;
-  opacity: 0;
+    pointer-events: all;
+    opacity: 0;
 }
+
+.hover-overlay {
+    background-color: rgba(0, 130, 0, 0.4);
+}
+
+/* *:hover {
+    outline: solid medium black;
+} */

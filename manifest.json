@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Hover",
-  "description": "hover",
+  "name": "Redecorate",
+  "description": "Edit Sites, Save and Share Changes.",
   "version": "1.0",
   "icons": {
     "128": "images/chicken.png"

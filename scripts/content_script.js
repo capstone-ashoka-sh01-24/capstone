@@ -287,19 +287,20 @@
 
   // scripts/model.mjs
   var Hidden = class {
-    constructor() {
+    constructor(type) {
+      this.type = type;
     }
     toJSON() {
       return [
         {
-          variant: "hidden"
+          variant: "hidden",
+          data: this.type
         }
       ];
     }
   };
   var CompositeModification = class _CompositeModification {
-    // static properties = ["annotation", "fontChange", "contentChange"];
-    static properties = ["annotation"];
+    static properties = ["annotation", "textchange"];
     constructor() {
       for (const p of _CompositeModification.properties) {
         this[p] = void 0;
@@ -308,27 +309,9 @@
     updateAnnotation(annotation) {
       this.annotation = annotation;
     }
-    /* TODO
-    updateFontChange(fontChange) {
-      this.fontChange = fontChange;
+    updateTextChange(textchange) {
+      this.textchange = textchange;
     }
-    updateContentChange(contentChange) {
-      this.contentChange = contentChange;
-    }
-    */
-    /**
-    
-       * @param {string} prop_name
-       * @returns {({variant: string, data: undefined | Object})}
-       */
-    /*
-     stringify_property(prop_name) {
-      return {
-        variant: prop_name,
-        data: undefined,
-      };
-      // TODO data: this[prop_name]
-    } */
     toJSON() {
       let json = [];
       let props = _CompositeModification.properties.filter(
@@ -360,9 +343,7 @@
       this.modifications = new CompositeModification();
     }
     toggleHidden() {
-      console.log("Before Toggle:", this, this.isHidden());
       this.isHidden() ? this.setCompositeModification() : this.setHidden();
-      console.log("After Toggle:", this, this.isHidden());
     }
     /**
      * Add / Remove Annotation
@@ -389,11 +370,17 @@
         (cl) => this.node.classList.contains(cl)
       );
       this.node.classList.remove(...customCSSClasses);
-      let json_obj = {
-        node: finder(this.node),
-        // TODO: modifications: null (for unimplemented/empty mods);
-        modifications: this.modifications.toJSON()
-      };
+      let json_obj = void 0;
+      try {
+        const elem = finder(this.node);
+        json_obj = {
+          node: elem,
+          // TODO: modifications: null (for unimplemented/empty mods);
+          modifications: this.modifications.toJSON()
+        };
+      } catch (e) {
+        console.log("Couldn't find node: ", this.node);
+      }
       console.log(this.node);
       this.node.classList.add(...activeCustomCSS);
       if (json_obj.modifications !== void 0) {
@@ -448,11 +435,10 @@
         case allowedActions.hide:
           nodeModification.toggleHidden();
           break;
-        // case allowedActions.toggleDeannotate:
-        //   nodeModification.updateAnnotation(null);
-        //   break;
         case allowedActions.annotate:
           nodeModification.updateAnnotation(modification.data);
+        case allowedActions.delete:
+          nodeModification.updateText();
       }
     }
     /** Stringifies the current state of the modifications object,
@@ -600,6 +586,8 @@
     setAction(action) {
       this.current_action = action;
       this.current_listeners = [
+        // ["mouseover", (e) => wrapOverlay(e.target)],
+        // ["mouseout", (e) => unwrapOverlay(e.target)],
         ["mouseover", toggleHoveringStyle],
         ["mouseout", toggleHoveringStyle]
       ];

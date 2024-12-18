@@ -21,7 +21,6 @@ const buttons = [
   [btn_load, stateActions.load],
 ];
 
-debugger;
 buttons.forEach(([button, message]) => {
   button.addEventListener("click", () => send_message(message));
 });
@@ -34,11 +33,6 @@ const send_message = async (body) => {
   console.log("Message to bg: ", body);
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const response = await chrome.tabs.sendMessage(tab.id, { action: body });
-  // if (response) {
-  //   console.log("Tab Object", response.status);
-  // } else {
-  //   console.error("Communication abruptly ended from content.");
-  // }
 };
 
 const msg_container = document.getElementById("container-messages");

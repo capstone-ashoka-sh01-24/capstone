@@ -12,12 +12,10 @@ import {
   isAllowedAction,
   isStateAction,
 } from "./lib.mjs";
+import { wrapOverlay, unwrapOverlay } from "./wrapper.mjs";
 import { generateHash } from "./digest.mjs";
 import { PageModifications, loadModifications } from "./model.mjs";
-import {
-  OnlineModificationStorage,
-  OfflineModificationStorage,
-} from "./sync.mjs";
+import { OfflineModificationStorage } from "./sync.mjs";
 
 // ---------------------------------------------------------------------
 const getURL = () =>
@@ -37,11 +35,6 @@ const toggleHoveringStyle = (e) => {
   e.target.classList.toggle("hovering");
 };
 
-function curry(f, a) {
-  return function (e) {
-    return f(a, e);
-  };
-}
 // ---------------------------------------------------------------------
 
 // --------------------------------------------------------------
@@ -85,6 +78,8 @@ class ExtensionState {
   setAction(action) {
     this.current_action = action;
     this.current_listeners = [
+      // ["mouseover", (e) => wrapOverlay(e.target)],
+      // ["mouseout", (e) => unwrapOverlay(e.target)],
       ["mouseover", toggleHoveringStyle],
       ["mouseout", toggleHoveringStyle],
     ];
