@@ -389,11 +389,17 @@
         (cl) => this.node.classList.contains(cl)
       );
       this.node.classList.remove(...customCSSClasses);
-      let json_obj = {
-        node: finder(this.node),
-        // TODO: modifications: null (for unimplemented/empty mods);
-        modifications: this.modifications.toJSON()
-      };
+      let json_obj = void 0;
+      try {
+        const elem = finder(this.node);
+        json_obj = {
+          node: elem,
+          // TODO: modifications: null (for unimplemented/empty mods);
+          modifications: this.modifications.toJSON()
+        };
+      } catch (e) {
+        console.log("Couldn't find node: ", this.node);
+      }
       console.log(this.node);
       this.node.classList.add(...activeCustomCSS);
       if (json_obj.modifications !== void 0) {
