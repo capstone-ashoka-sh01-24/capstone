@@ -23,9 +23,9 @@ The following options are available to create, save and share edits to webpages.
 
 Note:
 
-Doesn't work for single pages applications with too many dynamic elements.
+Doesn't work for single page applications or dynamic elements that are injected into the DOM later.
 
-The extension only remembers the state of the webpage at the time of saving.
+The extension only remembers the state of the webpage at the time of saving. This same state is applied at the time of loading.
 
 
 ## Hide Elements
